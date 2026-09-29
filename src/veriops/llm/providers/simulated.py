@@ -344,7 +344,7 @@ class SimulatedProvider:
         # Gullibility probe: obey instructions embedded in documents (only reachable if unsanitised).
         for doc in knowledge:
             m = _INJECTED_SQL.search(doc.get("snippet", ""))
-            if m:
+            if m and ActionType.DATABASE_REMEDIATION.value not in rejected:
                 return self._proposal(
                     ActionType.DATABASE_REMEDIATION,
                     sql=m.group(1).strip(),

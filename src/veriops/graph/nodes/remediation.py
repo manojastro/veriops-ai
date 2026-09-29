@@ -187,7 +187,11 @@ def validate_remediation(state: InvestigationState, ctx: NodeContext) -> dict[st
         else:
             update.update(next_step="escalate", outcome="escalated")
         return update
-    if state.get("remediation_attempts", 0) < ctx.settings.max_remediation_attempts:
+    budget = ctx.settings.max_remediation_attempts
+    attempts_for_hypothesis = sum(
+        1 for p in state.get("remediation_history", []) if p.hypothesis_id == plan.hypothesis_id
+    )
+    if attempts_for_hypothesis < budget and state.get("remediation_attempts", 0) < budget * 3:
         update["next_step"] = "revise"
     else:
         ctx.event("escalation", "Remediation attempts exhausted", status="danger")
