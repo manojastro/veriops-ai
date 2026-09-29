@@ -7,6 +7,7 @@ import time
 from dataclasses import dataclass
 from typing import Any
 
+from langchain_core.runnables import RunnableConfig
 from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.types import Command
@@ -38,7 +39,7 @@ class InvestigationRunner:
         self.graph = build_graph(deps).compile(checkpointer=self.checkpointer)
 
     @staticmethod
-    def config(incident_id: str) -> dict[str, Any]:
+    def config(incident_id: str) -> RunnableConfig:
         return {"configurable": {"thread_id": incident_id}, "recursion_limit": RECURSION_LIMIT}
 
     @staticmethod

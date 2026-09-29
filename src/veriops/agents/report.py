@@ -98,7 +98,8 @@ class ReportAgent:
             if approval
             else []
         )
-        executed_ok = state.get("execution_result") is not None and state["execution_result"].success
+        execution = state.get("execution_result")
+        executed_ok = execution is not None and execution.success
         final_plan_payload = None
         if final_plan and (executed_ok or outcome in ("resolved", "rolled_back")):
             final_plan_payload = {

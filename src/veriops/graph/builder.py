@@ -33,7 +33,7 @@ query_metrics · query_logs · query_traces · inspect_kubernetes · inspect_dat
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import Any
+from typing import Any, cast
 
 from langgraph.graph import END, START, StateGraph
 
@@ -113,7 +113,7 @@ def _guard(next_node: str) -> Callable[[InvestigationState], str]:
 def build_graph(deps: GraphDeps) -> StateGraph:
     graph = StateGraph(InvestigationState)
     for name, fn in NODES.items():
-        graph.add_node(name, instrumented(name, fn, deps))
+        graph.add_node(name, cast(Any, instrumented(name, fn, deps)))
 
     graph.add_edge(START, "create_incident")
     graph.add_edge("create_incident", "collect_initial_context")

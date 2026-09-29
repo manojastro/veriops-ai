@@ -1,0 +1,26 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: veriops-remediation
+  namespace: commerce   # the namespace VeriOps is allowed to remediate
+rules:
+  - apiGroups: [apps]
+    resources: [deployments/scale]
+    verbs: [get, update, patch]
+  - apiGroups: [apps]
+    resources: [deployments]
+    verbs: [get, patch]   # rollout restart / rollback via pod-template revision
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: veriops-remediation
+  namespace: commerce
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: veriops-remediation
+subjects:
+  - kind: ServiceAccount
+    name: veriops
+    namespace: veriops

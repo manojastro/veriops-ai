@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: veriops-web
+  labels: { app: veriops-web }
+spec:
+  replicas: 2
+  selector:
+    matchLabels: { app: veriops-web }
+  template:
+    metadata:
+      labels: { app: veriops-web }
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: web
+          image: veriops-web
+          ports: [{ name: http, containerPort: 3000 }]
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: [ALL] }
+          volumeMounts: [{ name: cache, mountPath: /app/.next/cache }]
+          readinessProbe:
+            httpGet: { path: /login, port: http }
+          livenessProbe:
+            httpGet: { path: /login, port: http }
+            initialDelaySeconds: 15
+          resources:
+            requests: { cpu: 100m, memory: 256Mi }
+            limits: { cpu: 500m, memory: 512Mi }
+      volumes: [{ name: cache, emptyDir: {} }]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: veriops-web
+spec:
+  selector: { app: veriops-web }
+  ports: [{ name: http, port: 3000, targetPort: http }]

@@ -14,7 +14,7 @@ import itertools
 import re
 import threading
 from collections import OrderedDict
-from typing import Protocol
+from typing import Any, Protocol
 
 import numpy as np
 
@@ -97,6 +97,8 @@ class HashingEmbedder:
 
 
 class OpenAIEmbedder:
+    _client: Any
+
     def __init__(self, settings: Settings) -> None:
         import openai
 

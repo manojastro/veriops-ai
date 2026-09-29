@@ -123,7 +123,8 @@ class PgVectorStore:
 
     @staticmethod
     def _filters(document_types: list[str] | None, service: str | None) -> tuple[str, dict[str, Any]]:
-        clauses, params = [], {}
+        clauses: list[str] = []
+        params: dict[str, Any] = {}
         if document_types:
             clauses.append("d.document_type = ANY(:types)")
             params["types"] = document_types
@@ -153,7 +154,7 @@ class PgVectorStore:
     ) -> list[ChunkHit]:
         where, params = self._filters(document_types, service)
         sql = text(
-            "SELECT c.id, c.document_id, c.heading, c.content, d.title, d.document_type, d.service, "
+            "SELECT c.id, c.document_id, c.heading, c.content, d.title, d.document_type, d.service, "  # nosec B608
             "d.flagged_injection, 1 - (c.embedding <=> CAST(:q AS vector)) AS score "
             "FROM document_chunks c JOIN knowledge_documents d ON d.id = c.document_id "
             f"WHERE TRUE{where} ORDER BY c.embedding <=> CAST(:q AS vector) LIMIT :k"
@@ -171,7 +172,7 @@ class PgVectorStore:
             return []
         where, params = self._filters(document_types, service)
         sql = text(
-            "SELECT c.id, c.document_id, c.heading, c.content, d.title, d.document_type, d.service, "
+            "SELECT c.id, c.document_id, c.heading, c.content, d.title, d.document_type, d.service, "  # nosec B608
             "d.flagged_injection, ts_rank_cd(c.tsv, to_tsquery('english', :tsq)) AS score "
             "FROM document_chunks c JOIN knowledge_documents d ON d.id = c.document_id "
             f"WHERE c.tsv @@ to_tsquery('english', :tsq){where} ORDER BY score DESC LIMIT :k"

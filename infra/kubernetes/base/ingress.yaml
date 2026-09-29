@@ -1,0 +1,23 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: veriops
+  annotations:
+    nginx.ingress.kubernetes.io/limit-rpm: "300"
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"   # Server-Sent Events
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts: [veriops.example.com]
+      secretName: veriops-tls
+  rules:
+    - host: veriops.example.com
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend: { service: { name: veriops-api, port: { number: 8000 } } }
+          - path: /
+            pathType: Prefix
+            backend: { service: { name: veriops-web, port: { number: 3000 } } }

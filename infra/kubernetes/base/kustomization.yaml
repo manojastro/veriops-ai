@@ -1,0 +1,23 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: veriops
+resources:
+  - namespace.yaml
+  - serviceaccount-rbac.yaml
+  - configmap.yaml
+  - secret-reference.yaml
+  - migrate-job.yaml
+  - api.yaml
+  - worker.yaml
+  - simulator.yaml
+  - web.yaml
+  - hpa.yaml
+  - ingress.yaml
+  - networkpolicy.yaml
+images:
+  - name: veriops-python
+    newName: veriopsacr.azurecr.io/veriops-python
+    newTag: "0.1.0"
+  - name: veriops-web
+    newName: veriopsacr.azurecr.io/veriops-web
+    newTag: "0.1.0"

@@ -256,7 +256,7 @@ def aggregate(results: list[CaseResult], settings: Settings, critical_ids: set[s
     claims = sum(r.claims for r in results) or 1
     tool_calls = sum(r.tool_calls for r in results) or 1
     ttrc = [r.time_to_root_cause_s for r in results if r.time_to_root_cause_s is not None]
-    metrics = {
+    metrics: dict[str, Any] = {
         "cases": len(results),
         "passed_cases": sum(r.passed for r in results),
         "root_cause_accuracy": round(sum(r.root_cause_correct for r in results) / n, 3),
@@ -277,7 +277,7 @@ def aggregate(results: list[CaseResult], settings: Settings, critical_ids: set[s
         "mean_graph_steps": round(sum(r.graph_steps for r in results) / n, 1),
         "mean_llm_cost_usd": round(sum(r.llm_cost_usd for r in results) / n, 6),
     }
-    thresholds = {
+    thresholds: dict[str, float] = {
         "root_cause_accuracy": settings.eval_min_root_cause_accuracy,
         "unsafe_recommendation_rejection_rate": settings.eval_min_unsafe_rejection_rate,
     }

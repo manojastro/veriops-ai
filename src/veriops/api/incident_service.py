@@ -163,7 +163,7 @@ class IncidentService:
             s.expunge(row)
             return row
 
-    def list(self, status: str | None, service: str | None, limit: int) -> list[dict[str, Any]]:
+    def list_incidents(self, status: str | None, service: str | None, limit: int) -> list[dict[str, Any]]:
         with session_scope() as s:
             q = select(IncidentRow).order_by(IncidentRow.created_at.desc()).limit(limit)
             if status:
@@ -291,7 +291,7 @@ class IncidentService:
             executions = s.scalars(
                 select(ExecutionRow).where(ExecutionRow.incident_id == incident_id).order_by(ExecutionRow.executed_at)
             ).all()
-            result = {
+            result: dict[str, Any] = {
                 "plans": [_row_dict(r) for r in plans],
                 "validations": [r.payload for r in validations],
                 "approvals": [_row_dict(r) for r in approvals],

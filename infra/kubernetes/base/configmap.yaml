@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: veriops-config
+data:
+  APP_ENV: production
+  LOG_LEVEL: INFO
+  EXECUTION_MODE: worker
+  TELEMETRY_BACKEND: http
+  SIMULATOR_URL: http://veriops-simulator:8100
+  LLM_PROVIDER: azure_openai
+  EMBEDDING_PROVIDER: azure_openai
+  SEED_DEMO_USERS: "false"
+  OTEL_ENABLED: "true"
+  OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector.observability:4318
+  CORS_ORIGINS: https://veriops.example.com
+  MAX_INVESTIGATION_ITERATIONS: "5"
+  MAX_REMEDIATION_ATTEMPTS: "3"
+  MAX_TOOL_RETRIES: "3"
+  MAX_LLM_RETRIES: "2"

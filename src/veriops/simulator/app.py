@@ -243,7 +243,7 @@ def run() -> None:
 
     uvicorn.run(
         app,
-        host=os.environ.get("SIMULATOR_HOST", "0.0.0.0"),  # noqa: S104
+        host=os.environ.get("SIMULATOR_HOST", "0.0.0.0"),  # noqa: S104  # nosec B104
         port=int(os.environ.get("SIMULATOR_PORT", "8100")),
     )
 

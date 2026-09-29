@@ -1,0 +1,8 @@
+# Opt-in: grants the worker the minimum write permissions needed for approved remediations
+# (scale and rollback of Deployments). Apply only after security review; every write still requires
+# validation + policy + (for HIGH_RISK_WRITE) a recorded human approval inside VeriOps.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../base
+  - remediation-rbac.yaml

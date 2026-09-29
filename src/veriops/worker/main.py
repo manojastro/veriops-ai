@@ -6,11 +6,14 @@ Graph state lives in the PostgreSQL checkpointer, so any worker replica can resu
 from __future__ import annotations
 
 import logging
+import os
 import signal
 from types import FrameType
 
+from prometheus_client import start_http_server
+
 from veriops.api.runtime import RedisJobQueue, build_runtime
-from veriops.db.seed import seed_knowledge
+from veriops.observability.metrics import REGISTRY
 from veriops.observability.tracing import configure_tracing
 from veriops.shared.config import get_settings
 from veriops.shared.logging import configure_logging
@@ -31,10 +34,8 @@ def run() -> None:
     if settings.otel_enabled:
         configure_tracing("veriops-worker", settings.otel_exporter_otlp_endpoint)
     runtime = build_runtime(settings, for_worker=True)
-    try:
-        seed_knowledge(runtime.platform.ingestor)
-    except Exception:
-        logger.exception("knowledge seeding failed")
+    # Knowledge seeding is owned by the API process to avoid concurrent first-boot ingestion.
+    start_http_server(int(os.environ.get("WORKER_METRICS_PORT", "9100")), registry=REGISTRY)
     queue = RedisJobQueue(settings.redis_url)
     signal.signal(signal.SIGTERM, _stop)
     signal.signal(signal.SIGINT, _stop)

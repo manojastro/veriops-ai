@@ -50,7 +50,7 @@ def list_incidents(
     svc: IncidentService = Depends(service),
     _: Principal = Depends(require("incidents:read")),
 ) -> list[dict[str, Any]]:
-    return svc.list(status, service_name, limit)
+    return svc.list_incidents(status, service_name, limit)
 
 
 @router.get("/{incident_id}", summary="Incident detail including live investigation state")

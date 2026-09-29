@@ -13,7 +13,7 @@ from functools import lru_cache
 from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-_DEV_JWT_SECRET = "dev-only-insecure-jwt-secret-change-me"  # noqa: S105 - explicit dev sentinel
+_DEV_JWT_SECRET = "dev-only-insecure-jwt-secret-change-me"  # noqa: S105  # nosec B105
 
 
 class LLMProvider(StrEnum):
@@ -46,7 +46,7 @@ class Settings(BaseSettings):
     # --- runtime ---------------------------------------------------------------------------
     app_env: str = Field(default="local", description="local | test | staging | production")
     log_level: str = "INFO"
-    api_host: str = "0.0.0.0"  # noqa: S104 - container bind address
+    api_host: str = "0.0.0.0"  # noqa: S104  # nosec B104
     api_port: int = 8000
     cors_origins: str = "http://localhost:3000"
 

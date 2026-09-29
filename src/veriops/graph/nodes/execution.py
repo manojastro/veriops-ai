@@ -85,39 +85,43 @@ def execute_remediation(state: InvestigationState, ctx: NodeContext) -> dict[str
 
     previous: dict[str, Any] = {"replicas": ctx.signals(state).replicas}
     tool = ACTION_TOOL[plan.action.action_type.value]
-    result = ctx.deps.tools.invoke(tool, _tool_args(plan), tool_ctx)
-    if result.ok and isinstance(result.data, dict):
+    tool_result = ctx.deps.tools.invoke(tool, _tool_args(plan), tool_ctx)
+    if tool_result.ok and isinstance(tool_result.data, dict):
         previous.update(
             {
                 k: v
-                for k, v in result.data.items()
+                for k, v in tool_result.data.items()
                 if k in ("previous_replicas", "old_value", "rolled_back", "active_deployment")
             }
         )
     execution = ExecutionResult(
         plan_id=plan.id,
         action=plan.action.describe(),
-        success=result.ok,
-        detail=str(result.data if result.ok else result.error),
+        success=tool_result.ok,
+        detail=str(tool_result.data if tool_result.ok else tool_result.error),
         previous_state=previous,
     )
     ctx.deps.recorder.execution(
-        ctx.incident_id, plan.id, "remediation", result.ok, {"tool": tool, "result": result.data, "error": result.error}
+        ctx.incident_id,
+        plan.id,
+        "remediation",
+        tool_result.ok,
+        {"tool": tool, "tool_result": tool_result.data, "error": tool_result.error},
     )
     ctx.audit(
         "remediation.execute",
-        decision="SUCCESS" if result.ok else "FAILED",
+        decision="SUCCESS" if tool_result.ok else "FAILED",
         tool=tool,
         input=_tool_args(plan),
-        output={"result": result.data, "error": result.error},
+        output={"tool_result": tool_result.data, "error": tool_result.error},
         approval=tool_ctx.approval_id,
-        execution=result.call_id,
+        execution=tool_result.call_id,
         actor_type=ActorType.AGENT,
     )
-    obs_metrics.REMEDIATIONS.labels(plan.action.action_type.value, "executed" if result.ok else "failed").inc()
-    if not result.ok:
+    obs_metrics.REMEDIATIONS.labels(plan.action.action_type.value, "executed" if tool_result.ok else "failed").inc()
+    if not tool_result.ok:
         ctx.event(
-            "execution_failed", f"Execution failed: {plan.action.describe()}", result.error or "", status="danger"
+            "execution_failed", f"Execution failed: {plan.action.describe()}", tool_result.error or "", status="danger"
         )
         return {"execution_result": execution, "next_step": "failed", "outcome": "escalated"}
     ctx.event(
@@ -187,9 +191,10 @@ def verify_recovery(state: InvestigationState, ctx: NodeContext) -> dict[str, An
             )
     passed = all(c.passed for c in checks)
     verification = VerificationResult(passed=passed, before=before, after=after, checks=checks)
+    plan = state.get("proposed_remediation")
     ctx.deps.recorder.execution(
         ctx.incident_id,
-        state["proposed_remediation"].id if state.get("proposed_remediation") else "",
+        plan.id if plan else "",
         "verification",
         passed,
         verification.model_dump(mode="json"),

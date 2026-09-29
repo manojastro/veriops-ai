@@ -1,0 +1,46 @@
+# The simulator is for demos/staging. In production, InfrastructureBackend implementations for
+# Prometheus, Loki/Tempo, the Kubernetes API and pg_stat_statements replace it.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: veriops-simulator
+  labels: { app: veriops-simulator }
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: veriops-simulator }
+  template:
+    metadata:
+      labels: { app: veriops-simulator }
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: simulator
+          image: veriops-python
+          command: ["python", "-m", "veriops.simulator.app"]
+          ports: [{ name: http, containerPort: 8100 }]
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: [ALL] }
+          readinessProbe:
+            httpGet: { path: /health, port: http }
+          livenessProbe:
+            httpGet: { path: /health, port: http }
+          resources:
+            requests: { cpu: 100m, memory: 256Mi }
+            limits: { cpu: 500m, memory: 512Mi }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: veriops-simulator
+spec:
+  selector: { app: veriops-simulator }
+  ports: [{ name: http, port: 8100, targetPort: http }]
