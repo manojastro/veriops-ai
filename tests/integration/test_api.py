@@ -158,3 +158,10 @@ def test_kpis_and_settings(client: TestClient) -> None:
     settings = client.get("/api/settings", headers=viewer).json()
     assert settings["llm_provider"] == "simulated"
     assert all("secret" not in str(v).lower() for k, v in settings.items() if k != "tools")
+
+
+def test_login_is_rate_limited(client: TestClient) -> None:
+    codes = [
+        client.post("/api/auth/login", json={"username": "nobody", "password": "x"}).status_code for _ in range(15)
+    ]
+    assert 429 in codes and codes[0] == 401

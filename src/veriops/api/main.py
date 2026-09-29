@@ -86,7 +86,10 @@ def create_app() -> FastAPI:
         allow_headers=["Authorization", "Content-Type"],
     )
 
-    limiter = InMemoryRateLimiter(settings.rate_limit_per_minute)
+    # Writes (create, investigate, approve, ingest) get the configured budget; reads get a larger one
+    # because the live console polls several read endpoints while an investigation runs.
+    write_limiter = InMemoryRateLimiter(settings.rate_limit_per_minute)
+    read_limiter = InMemoryRateLimiter(settings.rate_limit_per_minute * 10)
     login_limiter = InMemoryRateLimiter(10)
 
     @app.middleware("http")
@@ -99,7 +102,10 @@ def create_app() -> FastAPI:
             if header.lower().startswith("bearer "):
                 with contextlib.suppress(AuthError):
                     key = f"user:{decode_token(header[7:], settings).user_id}"
-            bucket = login_limiter if path == "/api/auth/login" else limiter
+            if path == "/api/auth/login":
+                bucket = login_limiter
+            else:
+                bucket = read_limiter if request.method in ("GET", "HEAD") else write_limiter
             allowed, retry_after = bucket.allow(key)
             if not allowed and not path.endswith("/stream"):
                 return JSONResponse(

@@ -81,24 +81,58 @@ dependencies by convention (`domain` ← everything; `graph` → agents/tools/va
 
 | Phase | Scope | Status |
 |---|---|---|
-| 1 Foundation | repo, settings, DB models, Alembic, FastAPI health, Next.js shell, Compose | ☐ |
-| 2 Simulator | world model, 7 fault scenarios, telemetry + action + sandbox API | ☐ |
-| 3 Tools | 17 tools, registry, permissions, retries, timeouts, structured results | ☐ |
-| 4 LangGraph | typed state, 25 nodes, 3 loops, bounded iterations, checkpoints | ☐ |
-| 5 LLM | gateway, providers, router, cost ledger, simulated reasoner | ☐ |
-| 6 RAG | corpus, chunking, embeddings, pgvector, FTS, RRF, reranker, citations | ☐ |
-| 7 Validation | validators, sandbox, critical unsafe-scaling test | ☐ |
-| 8 Human approval | interrupt/resume, approve/reject/more-investigation API + UI | ☐ |
-| 9 Remediation | execution through allow-listed tools against simulator | ☐ |
-| 10 Verification | pre/post comparison, automatic rollback on failure | ☐ |
-| 11 Observability | OTel traces, Prometheus metrics, Grafana dashboard, cost endpoint | ☐ |
-| 12 Evaluation | eval dataset (≥10), harness, metrics, CI threshold gate | ☐ |
-| 13 Security | JWT, RBAC, rate limiting, prompt-injection defence, audit redaction | ☐ |
-| 14 Deployment | Dockerfiles, Compose, K8s manifests, Azure architecture | ☐ |
-| 15 Polish | README, ADRs, diagrams, demo script | ☐ |
+| 1 Foundation | repo, settings, DB models, Alembic, FastAPI health, Next.js shell, Compose | ☑ |
+| 2 Simulator | world model, 12 fault scenarios, telemetry + action + sandbox API | ☑ |
+| 3 Tools | 29 tools, registry, permissions, retries, timeouts, structured results | ☑ |
+| 4 LangGraph | typed state, 26 nodes, 3 loops, bounded iterations, checkpoints | ☑ |
+| 5 LLM | gateway, providers, router, cost ledger, simulated reasoner | ☑ (real providers implemented, not exercised: no keys) |
+| 6 RAG | corpus, chunking, embeddings, pgvector, FTS, RRF, reranker, citations | ☑ |
+| 7 Validation | validators, sandbox, critical unsafe-scaling test | ☑ |
+| 8 Human approval | interrupt/resume, approve/reject/more-investigation API + UI | ☑ |
+| 9 Remediation | execution through allow-listed tools against simulator | ☑ |
+| 10 Verification | pre/post comparison, automatic rollback on failure | ☑ |
+| 11 Observability | OTel traces, Prometheus metrics, Grafana dashboard, cost endpoint | ☑ (Langfuse exporter not wired) |
+| 12 Evaluation | eval dataset (15), harness, metrics, CI threshold gate | ☑ |
+| 13 Security | JWT, RBAC, rate limiting, prompt-injection defence, audit redaction | ☑ |
+| 14 Deployment | Dockerfiles, Compose, K8s manifests, Azure Terraform | ☑ (K8s/Terraform schema validation runs in CI only) |
+| 15 Polish | README, ADRs, diagrams, demo script, screenshots | ☑ |
 
-Each milestone follows: implement → run → test → fix → verify → commit.
+Each milestone followed: implement → run → test → fix → verify → commit.
 
-## 4. Phase log
+## 4. Phase log (evidence)
 
-(Filled in as phases complete, with the commands run and their results.)
+### Foundation, simulator, tools (commit `c02c275`)
+- `alembic upgrade head` → `downgrade base` → `upgrade head`: success; 23 tables.
+- `UPDATE audit_events …` → rejected by trigger (`audit_events is append-only`).
+- Simulator flagship: p95 4200 ms / errors 11.8 % / CPU 37 % / memory 52 % / pool 100 %; sandbox rollback →
+  310 ms / 0.4 %; sandbox scale 3→8 → 6650 ms / 23.6 %, DB 291/250 connections.
+- Tool registry smoke: HIGH_RISK_WRITE without approval refused; `DROP TABLE` refused by schema and by BLOCKED tool.
+
+### Graph, LLM, RAG, validation (commit `c02c275`)
+- All 12 scenarios resolved in-process with the correct root-cause category; staging scenario auto-executed at LOW risk.
+- Hybrid search returns INC-2025-114 and the checkout runbook for the flagship query; poisoned document flagged
+  with 5 finding types and neutralised.
+
+### API, persistence, security, evaluation (commit `99f4550`)
+- Live HTTP run on PostgreSQL: create → investigate → AWAITING_APPROVAL (31 events) → approve (alice) → RESOLVED.
+- RBAC: engineer approve → 403; viewer create → 403; no token → 401; bad password → 401.
+- `veriops-eval`: 15/15 cases pass; gates pass (accuracy 1.0, unsafe rejection 9/9, 0 unsafe executed).
+- pytest: 122 passed (unit + evals); 7 passed (integration).
+
+### Frontend, packaging, CI (commit `9a9034a`)
+- `tsc --noEmit` clean; Vitest 6 passed; `next build` succeeded (11 routes).
+- `docker compose up`: 10 services running; API and web healthy; Prometheus targets `veriops-api` and
+  `veriops-worker` up; Jaeger receives traces from both; Grafana dashboard provisioned.
+- Playwright (Chromium) against Compose in worker mode: flagship demo and viewer RBAC test — 2 passed.
+- `scripts/demo_incident.py --approve` against Compose: RESOLVED, 8 LLM calls, $0.022 estimated.
+- mypy: no issues in 98 files; ruff clean; bandit: no findings; pip-audit and npm audit: 0 vulnerabilities.
+
+### Hardening
+- Rate limiter split into read/write budgets after measuring that the live console's polling (~150 req/min)
+  exceeded the single 120/min budget; login limiter covered by an integration test (8 integration tests pass).
+- Measured API p95 10–24 ms; graph first node ~0.19 s after `POST /api/incidents`; full investigation to the
+  approval gate ~0.7 s (simulated provider).
+
+## 5. Known gaps (see README → Limitations)
+Real telemetry backends; real-LLM evaluation run; approval-timeout sweeper; Langfuse exporter; Redis-backed rate
+limiting; SSO; automatic ingestion of new post-mortems into the knowledge base.
